@@ -1,0 +1,46 @@
+Informatyka i Biostatystyka
+###########################
+
+Cel:
+===
+
+Praktyczne wprowadzenie do statystyki
+
+Literatura:
+===========
+How to Lie With Statistics, by Darrell Huff.
+https://www.gatesnotes.com/About-Bill-Gates/Summer-Books-2015%20
+(żart -- do ustalenia)
+
+Oprogramowanie
+==============
+Zainstalować samodzielnie
+
+R
+https://cran.r-project.org/bin/windows/base/
+
+Rstudio
+https://www.rstudio.com/products/rstudio/download/
+
+Namiary na materiały
+===================
+https://github.com/hrpunio/IiB
+
+Następnie próbujemy wykonać
+
+wprowadzenie0.R
+
+Dane na dziś
+============
+FB200.csv -- pierwsze 200 (well 189) nazwisk z listy
+  https://www.forbes.com/billionaires/
+
+MZM.csv -- zwiedzający Muzeum Zamkowe Malborku (dane przekazane przez MZM)
+
+Zaliczenie
+==========
+Projekt zaliczeniowy wykonany w formie pisemnej składający się z dwóch części:
+1) raportu z~przeprowadzonego badania oraz
+2) eseju (kilka stron) dotyczącego ##do ustalenia##
+
+## koniec
