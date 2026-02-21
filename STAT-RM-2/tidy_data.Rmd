@@ -101,12 +101,30 @@ brak danych (np. 0 BMI jest niemożliwe).
 
 Duża liczba braków w niektórych zmiennych: SkinThickness, Insulin
 
-### Przykład 2: Nastawieniem wzgl. statystyki a samoskuteczność
+Przykładowa analiza: 
+
+* czy istnieje zależność pomiędzy BloodPressure a BMI?
+
+* czy coraz starsze kobiety mają większe szanse na zachorowanie na cukrzycę?
+
+
+![](./women-Pima-shinny-game-field-hockey.jpg){width=80%}
+
+Więc idziesz po pustyni Sonora i naprzeciwko widzisz takie panie. Co robisz?
+
+### Przykład 2: Postawa wzgl. statystyki a samoskuteczność
 
 https://chatgpt.com/share/69994512-09bc-8002-9884-37f57a9e1861
 
 https://docs.google.com/forms/d/1Wh-UDVFJFVPs7esU1J3tDt0xxCWdjgDlLkDdtfCC5Jc/edit
 
+Przykładowa analiza:
+
+* Czy ss jest różne dla kobiet i mężczyzn?
+
+* Czy ss zależy od wieku?
+
+* Czy istnieje zależność między pws a ss?
 
 ## Podział administracyjny Polski i Europy
 
@@ -169,9 +187,17 @@ Typy danych: data/czas, liczba, napis, prawda/fałsz
 Potocznie rodzaj pliku z danymi, często związany z określoną aplikacją, która potrafi
 ten plik „otworzyć” i zapisać.
 
-Excel: struktura danych ogólnie skomplikowana; podstawowe struktura =
+**Excel**: struktura danych ogólnie skomplikowana; podstawowe struktura =
 dwuwymiarowa tabela (wiersze/kolumny); 
 **typ danych** określony na poziomie komórki. 
+
+**Relacyjne bazy danych**: struktura danych zaprojektowana do efektywnego
+przechowywania i przetwarzania ogromych zbiorów danych. Baza danych
+składa się z połączonych (logicznie) tabel.
+
+**SQL**: standardowy język zapytań relacyjnych baz danych. Ponieważ współcześnie
+ogromne zbiorami danych są powszechne, wiele programów implementuje
+zwykle częściowo SQL, np Excel (`filter`, `select`, `join`).
 
 Format danych: excel, ale też są inne formaty:
 
