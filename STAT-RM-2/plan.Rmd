@@ -34,8 +34,9 @@ magisterskich może zostać przepisana
 Zaliczenie przedmiotu: projekt wykonany w grupie maksimu 5 osób, oceniany przeze
 mnie oraz przez prowadzącego ćwiczenia.
 
-Prośba o podzielenie się na grupy oraz wybór tematu przed 18 kwietnia 2026
-(czyli przed następną sesją wykładów). Praca ma zawierać następujące elementy:
+**Ważne: należy się podzielić na grupy oraz wybrać temat projektu przed 18 kwietnia 2026
+(czyli przed następną sesją wykładów). 
+Praca ma zawierać następujące elementy**:
 
 * Analiza jednej zmiennej np. częstość występowania otyłości w Europie
 
@@ -49,11 +50,29 @@ Prośba o podzielenie się na grupy oraz wybór tematu przed 18 kwietnia 2026
 Projekt ma się wzorować na analizie przedstawionej
 na wykładzie i ćwiczeniach. Nie zaleca się wykorzystania innych metod niż
   pokazane na zajęciach.
+  
+**Temat i skład zespołu proszę wysłać
+na mój szkolny adres, tj. `t.plata-przechlewski@` zaczynając temat od słowa `RMMgr`.
+W treści listu należy napisać jakie zmienne będą analizowne**. Czy 
+przykładowo ja bym swój projekt opisał jako:
+
+1. Analiza częstości występowania otyłości w Europie na podstawie
+danych `Obesity among adults, BMI >= 30, prevalence (crude estimate) (%)`
+(https://www.who.int/data/gho/data/indicators/indicator-details/GHO/prevalence-of-obesity-among-adults-bmi--30-(crude-estimate)-(-))
+
+2. Analiza zależności pomiędzy otyłością a cukrzycą; dane dotyczące
+cukrzycy także pochodzą z bazy gHO
+Diabetes, prevalence (%)
+(https://www.who.int/data/gho/data/indicators/indicator-details/GHO/prevalence-of-diabetes-age-standardized)
+
+3. Analiza dynamiki zgonów na szpiczaka plazmocytowego.
+Dane z bazy WHO mortality (https://platform.who.int/mortality)
+
+Czyli chodzi o to, żeby napisać jakie zmienne się będzie analizowało.
+
+## Materiały
 
 Materiały na wykłady https://tprzechlewski.blogspot.com/
-
-Wybór potencjalnego tematu na pracę magisterską pod kątem wykorzystania
-danych medycznych których są dostępne w miejscu pracy.
 
 ## Dane
 
@@ -78,6 +97,13 @@ sztuczne (czyli uproszczone i oczyszczone) i pochodzą z nast baz danych:
 
 * BDL (np. zgony wg przyczyn ale szczątkowo moim zdaniem)
   BDL generalnie bez szału
+
+**Inne dane:
+wybór tematu projektu wykorzystującego inne dane, np. dane medyczne, które 
+są dostępne w miejscu pracy
+wymaga skonsultowania tego z wykładowcą i uzyskania jego akceptacji do 18.04.2026.**
+
+
 
 ## Oprogramowanie
 
