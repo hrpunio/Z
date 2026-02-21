@@ -1,0 +1,255 @@
+---
+title: "Czyszczenie i porządkowanie danych"
+author:
+  name: Tomasz Przechlewski
+  email: "t.plata-przechlewski@psw.kwidzyn.edu.pl"
+  affiliation: Powiślańska Szkoła Wyższa (Kwidzyn/Poland)
+date: "21/2/2026"
+output:
+  html_document:
+    css: custom.css
+  pdf_document:
+    keep_tex: true
+    latex_engine: lualatex
+description: "(c) Tomasz Przechlewski / CC-BY license"
+header-includes: \usepackage{custom}
+---
+
+## Data wrangling
+
+Data wrangling to proces **czyszczenia, porządkowania i przygotowywania danych do analizy**.
+
+To etap, w którym „surowe” dane zamieniasz w dane gotowe do analizy statystycznej.
+
+
+### Dlaczego to jest potrzebne?
+
+Dane z badań (np. ankiety zdrowotnej) często są:
+
+* niekompletne,
+
+* z błędami,
+
+* w złym formacie,
+
+* niespójne (np. „K”, „kobieta”, „F”, „female”),
+
+* zapisane w kilku plikach.
+
+### Co wchodzi w skład data wrangling?
+
+* Czyszczenie danych:
+
+  * usuwanie duplikatów
+
+  * obsługa braków (NA)
+
+  * poprawianie literówek
+
+* Transformacja:
+
+  * zmiana formatu (np. tekst → liczba)
+
+  * tworzenie nowych zmiennych (np. BMI)
+
+  * przekształcanie skali (liniowa → logarytmiczna, liczbowa → nominalna)
+
+* Filtrowanie
+
+  * wybór tylko wybranej grupy (np. kobiety 40+)
+
+* Łączenie danych
+
+  * scalanie kilku plików w jeden
+
+* Zmiana struktury
+
+  * zmiana danych z „szerokich” na „długie”
+
+Nawet 70–80% czasu analizy to **data wrangling**. Powinniśmy mieć
+to na uwadze planując badanie.
+
+### Przykład 1 Pima Indians dataset (Pima Indians Diabetes Database)
+
+Pima Indians dataset to jeden z najbardziej 
+znanych zbiorów danych w statystyce i uczeniu maszynowym (rodzaj statystyki). 
+Służy do przewidywania 
+występowania cukrzycy typu 2 na podstawie danych klinicznych.
+
+Zmienne (cechy):
+
+Pregnancies – liczba przebytych ciąż
+
+Glucose – stężenie glukozy w osoczu (po 2h w teście OGTT)
+
+BloodPressure – ciśnienie rozkurczowe (mm Hg)
+
+SkinThickness – grubość fałdu skórnego tricepsa (mm)
+
+Insulin – stężenie insuliny (µU/ml)
+
+BMI – wskaźnik masy ciała
+
+DiabetesPedigreeFunction – wskaźnik obciążenia rodzinnego cukrzycą
+
+Age – wiek (lata)
+
+Outcome (zmienna zależna) -- 0 → brak cukrzycy ; 1 → rozpoznana cukrzyca
+
+W wielu zmiennych występują wartości „0”, które w rzeczywistości oznaczają 
+brak danych (np. 0 BMI jest niemożliwe).
+
+Duża liczba braków w niektórych zmiennych: SkinThickness, Insulin
+
+### Przykład 2: Nastawieniem wzgl. statystyki a samoskuteczność
+
+https://chatgpt.com/share/69994512-09bc-8002-9884-37f57a9e1861
+
+https://docs.google.com/forms/d/1Wh-UDVFJFVPs7esU1J3tDt0xxCWdjgDlLkDdtfCC5Jc/edit
+
+
+## Podział administracyjny Polski i Europy
+
+System TERYT jest używany w Polsce przez GUS na przykład. W bazie BDL
+większość danych jest zagregowana wg systemu TERYT. NUTS to system
+używany przez Eurostat.
+
+TERYT = https://pl.wikipedia.org/wiki/TERYT
+
+TERC = System identyfikatorów i nazw jednostek podziału administracyjnego
+
+
+```
+TERYT id:  00        00      000     - 7 digits
+            1.        2.       3.
+```
+
+1. province/województwo (00, 02, ..., 32)  -- 2 digits; z jakiś
+powodów tylko cyfry parzyste
+
+2. county/powiat (00, 01, ..., 59 - powiat; 
+  60, ..., 99 - city-county/miasto na prawach powiatu) - 2 digits
+
+3. community/gmina albo part of community/części gmin (000......, gdzie ostatni znak oznacza rodzaj jednostki) - 3 digits
+
+
+
+NUTS
+
+```
+NUTS id : 00 00      0        00      00     000     (12 digits)
+           1. 2.     3.        4.      5.      6.    (6 groups)
+```
+
+1. macroregion/makroregion (01, 02, ..., 07) 
+
+2. province/województwo (00, 02, ..., 32) 
+
+3. region/region (1, 2)
+
+4. subregion/podregion (00, 01, ..., 73) 
+
+5. County (powiatu (00, 01, ..., 59 - powiat; 60, ..., 99 - miasto na prawach powiatu) - 2 digits
+
+6. community/gmina or part of community/części gmin (000......, gdzie ostatni znak stanowi symbol rodzaju jednostki)  - 3 digits
+
+https://stat.gov.pl/statystyka-regionalna/jednostki-terytorialne/klasyfikacja-nuts/klasyfikacja-nuts-w-polsce/
+
+
+## Typy formaty i struktury danych
+
+**Typ danych**  = zbiór wartości, jaką może przyjąć **zmienna**;
+typ danych określa, jakie operacje można wykonywać na **zmiennej**
+
+Typy danych: data/czas, liczba, napis, prawda/fałsz
+
+**Struktura danych** to sposób organizacji danych w pamięci komputera.
+
+**Format danych** to sposób organizacji, zapisu i interpretacji danych, który określa, jak informacje są przechowywane i odczytywane przez systemy komputerowe. 
+Potocznie rodzaj pliku z danymi, często związany z określoną aplikacją, która potrafi
+ten plik „otworzyć” i zapisać.
+
+Excel: struktura danych ogólnie skomplikowana; podstawowe struktura =
+dwuwymiarowa tabela (wiersze/kolumny); 
+**typ danych** określony na poziomie komórki. 
+
+Format danych: excel, ale też są inne formaty:
+
+* CSV, 
+
+* Json,
+
+* XML, 
+
+CSV = prosty format w którym dane są podzielone na wiersze (zwykle obserwacje) 
+oraz kolumny (zwykle zmienne);
+wiersze i kolumny są oddzielone umownym znakiem. Opcjonalny pierwszy wiersz
+może być interpretowany jako nagłówek zawierający nazwy zmiennych.
+Przykładowo zbiór **Pima Indians dataset** w formacie CSV wygląda tak
+
+```
+pregnancies;glucose;bloodpress;skin;insulin;bmi;DiabetesPedigreeFunction;Age;outcome
+6;148;72;35;0;33.6;0.627;50;1
+1;85;66;29;0;26.6;0.351;31;0
+8;183;64;0;0;23.3;0.672;32;1
+```
+Każdy program od Excela do kosztującego pierdzilion `$$$` SPSSa potrafi
+wczytać plik CSV.
+
+Problem kropki dziesiętnej
+
+Wartość brakująca (missing value / Non-available value)
+
+Format długi i szeroki (long/wide format; PivotTable)
+
+![](./pivot_longer_R.png){width=80%}
+
+![](./pivot_wider_R.png){width=80%}
+
+Łączenie tabel
+
+```
++-------+--------------------+    +-------+-------------------+
+| teryt | liczba-mieszkańców |   | teryt | liczba-samochodów  |
++-------+--------------------+    +-------+-------------------+
+
++-------+--------------------+    +-------+-------------------+
+| teryt | nazwa-powiatu      |    | teryt | konsumpcja paliw  |
++-------+--------------------+    +-------+-------------------+
+```
+
+Wydrukować nazwę
+powiatu i obliczony wskaźnik liczby samochodów na mieszkańca
+(per capita) + przeciętne zużycie paliwa na samochód i mieszkańca
+
+https://data.europa.eu/apps/data-visualisation-guide/wide-versus-long-data
+
+## Przetwarzanie danych (aka programy statystyczne)
+
+Arkusze: Excel, Google sheets, LibreOffice
+
+Desktopowe systemy statystyczne, np. SPSS, Stata
+
+Przetwarzanie w chmurze: Azure (microsoft)
+ https://docs.microsoft.com/pl-pl/azure/architecture/data-guide/technology-choices/r-developers-guide
+
+ AWS
+ https://aws.amazon.com/blogs/opensource/getting-started-with-r-on-amazon-web-services/
+
+ Google
+ https://cloud.google.com/solutions/running-r-at-scale
+
+Programy open source: R, gretl, jamovi
+
+## Zamiast excela
+
+* R i RStudio (prezentacja)
+
+* Jamovi (prezentacja)
+
+ChatGPT: Czy R jest lepszy od Excela do analiz statystycznych?
+
+https://chatgpt.com/share/699939ce-9770-8002-a3bb-ab1e7ce1b29b
+
+
+
