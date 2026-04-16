@@ -1,0 +1,727 @@
+---
+title: "Korelacja i regresja"
+author:
+  name: Tomasz Przechlewski
+  email: "t.plata-przechlewski@psw.kwidzyn.edu.pl"
+  affiliation: Powiślańska Szkoła Wyższa (Kwidzyn/Poland)
+date: "21/2/2026"
+output:
+  html_document:
+    css: custom.css
+  pdf_document:
+    keep_tex: true
+    latex_engine: lualatex
+description: "(c) Tomasz Przechlewski / CC-BY license"
+header-includes: \usepackage{custom}
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+library('tidyverse')
+library('lm.beta')
+library('knitr')
+library ("DescTools")
+```
+
+## Związek pomiędzy zmiennymi, korelacja
+
+Jeżeli wartości jednej zmiennej się zmieniają a drugiej są stałe, to nie ma zależności
+pomiędzy zmiennymi. Jeżeli wraz ze zmianą wartości jednej zmiennej druga też się zmienia
+to taka zależność istnieje.
+Wstępną oceną zależności jest **korelacyjny wykres rozrzutu**.
+
+**Korelacja** to miara siły i kierunku współzależności między dwiema zmiennymi.
+Miarą korelacji liniowej jest współczynnik korelacji, który może
+przyjąć wartości z przedziału $[-1,1]$. Im większa, co do wartości bezwzględnej
+wartość współczynnika, tym związek pomiędzy zmiennymi jest silniejszy.
+Wartość (bliska) zeru świadczy o braku zależności.
+
+Współczynnik korelacji liniowej nie ma miana, tj. jest **liczbą bezwymiarową** (tzw. goła liczba:-))
+
+Współczynnik korelacji tradycyjnie oznaczamy małą literą $r$.
+
+**Typowa analiza**: $r$ szacujemy na podstawie próby. W takiej sytuacji oprócz oceny punktowej,
+należy podać przedział ufności oraz zweryfikować hipotezę, że wartość $r$
+jest istotnie różna
+od zera (co by potwierdzało istnienie związku między zmiennymi). Jeżelie nie
+uda się odrzucić $H_0: r=0$, to przyjmujemy, że nie udało na się wykazać iż istnieje
+związek pomiędzy zmiennymi.
+
+### Przykład (Machin s.150--152)
+
+Zmierzono poziom hemoglobiny (`Hb`), hematokrytu (`PCV`)
+oraz wiek (`age`) u 20 pacjentek. Dane są w pliku `hb-pcv-age.csv`.
+Czy istnieje związek pomiędzy `Hb` i `PCV` oraz `PCV` i `age`?
+
+Zależność `Hb` oraz `PCV`. Korelacyjny wykres rozrzutu, niebieska
+linia to prosta najlepiej dopasowana do kropek. Część programów potrafi
+taką kreskę narysować, część nie. Jak program, który używamy 
+nie potrafi, no to trudno...
+
+```{r}
+machin <- read.csv("hb-pcv-age.csv", dec = ".", sep = ";", header=T, na.string="NA")
+
+ggplot(machin, aes(x = hb, y = pcv )) +
+  geom_point(color="steelblue", size=1) +
+  geom_smooth(method = "lm", se = F) +
+  ylab('pcv')
+```
+
+Ocenę punktową współczynnika korelacji liniowej, przedział ufności oraz
+wynik weryfikacji hipotezy $H_0: r=0$ zawiera następujący wydruk
+z programu statystycznego:
+
+```{r}
+r1.out <- cor.test(machin$hb, machin$pcv, method = "pearson", conf.level = 0.95)
+#r1.p <- r1.out$p.value
+#r1.p
+#r1.out$estimate
+#r1.out$conf.int
+r1.out
+```
+
+Punktowa ocena to `r r1.out$estimate`; 95% przedział ufności to `r r1.out$conf.int`;
+weryfikację hipotezy dokonujemy w oparciu o wartość $p$ (`p-value` na wydruku):
+jeżeli jest ona mniejsza od przyjętego poziomu istotności to $H_0$ odrzucamy. 
+W tym przypadku $p$ jest równe `r r1.out$p.value` a poziom istotności jest równy 0,05.
+Hipotezę zerową należy odrzucić, $r$ jest istotnie różne od zera.
+
+Zależność `PCV` oraz `age`. Korelacyjny wykres rozrzutu, niebieska
+linia to prosta najlepiej dopasowana do kropek. Część programów potrafi
+taką kreskę narysować, część nie. Jak program, który używamy 
+nie potrafi, no to trudno...
+
+```{r}
+ggplot(machin, aes(x = pcv, y = age )) +
+  geom_point(color="steelblue", size=1) +
+  geom_smooth(method = "lm", se = F) +
+  ylab('age')
+
+r2.out <- cor.test(machin$pcv, machin$age, method = "pearson", conf.level = 0.95)
+r2.out
+```
+
+Punktowa ocena to `r r2.out$estimate`; 95% przedział ufności to `r r2.out$conf.int`;
+weryfikację hipotezy dokonujemy w oparciu o wartość $p$ (`p-value` na wydruku):
+jeżeli jest ona mniejsza od przyjętego poziomu istotności to $H_0$ odrzucamy. 
+W tym przypadku $p$ jest równe `r r2.out$p.value` a poziom istotności jest równy 0,05.
+Hipotezę zerową należy odrzucić, $r$ jest istotnie różne od zera.
+
+Zauważmy, że gdybyśmy jednakprzyjęli poziom istotności równy 0,01 to wtedy nie
+byłoby podstaw do odrzucenia hipotezy zerowej.
+
+
+## Analiza wariancji i regresja
+
+Stochastyczna niezależność
+
+$y∣X \sim F(θ)$
+
+powyższe oznacza: dla każdej wartości $X$, $y$ ma ten sam rozkład
+prawdopodobieństwa, zdefiniowany przez (wektor parametrów) $θ$.
+
+Przykładowo jeżeli jakaś zmienna $y$ ma dla każdej wartości $X$ ten sam rozkład
+normalny o wartości oczekiwanej $\mu$
+oraz wariancji $\sigma^2$, to $y$ oraz $X$ są niezależne. Wiedza na temat $X$
+nic nam nie mówi n/t wartości $y$.
+
+Stochastyczna zależność:
+
+$y|X \sim F(θ(X))  \tag{1}$
+
+powyższe oznacza: zmienna losowa $y$, warunkowo względem  $X$, ma rozkład z rodziny  $F$,
+którego parametry $θ$ zależą od  $X$.
+Rozkład prawdopodobieństwa zmiennej $y$ zależy
+od zmiennej X. Istnieje związek (zależność) pomiędzy $y$ i $X$.
+
+Wartość oczekiwana (albo średnia) zmiennej 
+$y$, warunkowo względem  $X$, jest dana przez funkcję
+$f$ zależną od  $X$ i parametrów  $β$, co można zapisać jako:
+
+$E(y|X) = f(X, \beta)   \tag{2}$
+
+## Analiza wariancji (ANOVA)
+
+Równania (1--2) można zapisać bardziej precyzyjnie:
+
+$$
+\begin{aligned}
+y∣X \sim N(μ(X), σ^2)\\
+E(y∣X) = μ(X)
+\end{aligned}
+$$
+
+Rozkład $F$ ze wzorów (1--2) definiujemy jako rozkład normalny
+o średniej $μ(X)$ oraz wariancji $σ^2$ (pierwszy wiersz) **oraz**
+dla każdej wartości $X$ średnia $y$ jest równa  $μ(X)$.
+
+Rozkład w populacji generalnej $y$ zależy od wartości $X$.
+Zmienna $X$ jest **zmienną nominalną** przyjmującą $k$ wartości zwanych
+poziomami; jeżeli $X$ to płeć, to są dwa poziomy: $K$ oraz $M$.
+
+Teraz $μ(K)$ oznacza średnią dla kobiet a 
+$μ(M)$ średnią dla mężczyzn.
+
+**Typowa analiza**: pobieramy z populacji próbę i na tej podstawie chcemy ocenić
+czy średnie wartości w populacji różnią się istotnie (albo:
+średnia wartość zmiennej $y$ jest różna w różnych grupach
+wyznaczonych przez zmienną $X$).
+Dla $k$-poziomów można zapisać hipotezę zerową formalnie jako:
+
+$$
+H_0: μ_1 = μ_2 = ... = μ_k
+$$
+
+### Przykład (kontynuacja poprzedniego)
+
+Zmienna `age3` zawiera wiek pacjentek zmierzony w 3-stopniowej skali nominalnej
+(niski, średni, wysoki). Pytanie czy średni poziom `Hb` w grupach wyznaczonych
+przez `age3` jest równy czy różny? Średnie w grupach można łatwo policzyć
+i wynoszą one:
+
+```{r}
+machin.hb.aggr <- machin |>
+  group_by(age3) |>
+  summarise(m = mean(hb))
+kable(machin.hb.aggr, row.names = F, digits=3, booktabs = TRUE )
+```
+
+Czy te różnice są istotne. Do tego właśnie służy (test) anova. Następujący
+wydruk z programu statystycznego zawiera wynik testu:
+
+```{r}
+anova.test <- oneway.test(hb ~ age3, data=machin)
+anova.test
+```
+
+Patrzymy na `p-value`, tutaj równe `r anova.test$p.value`. Ponieważ
+jest to wartość mniejsza od 0,05 zatem na poziomie istotności 0,05
+należy odrzucić hipotezę że wartości wszystkich średnich są równe.
+
+## Analiza regresji
+
+Równania (1–2) można zapisać bardziej precyzyjnie:
+
+$$
+\begin{align}
+y|X \sim N(Xβ, σ^2) \tag{1'}\\
+E(y∣X)= Xβ \tag{2'}
+\end{align}
+$$
+
+Rozkład $F$ ze wzorów (1--2 ) definiujemy także jako rozkład normalny,
+ale o średniej $Xβ$ oraz wariancji $σ^2$.
+
+Zapis: $Xβ$ oznacza kombinację liniową zmiennych objaśniających (w interpretacji
+graficznej: prosta lub ogólnie $p$-wymiarowa hiperpłaszczyzna); jeżeli $X$ oznacza
+jedną zmienną, np. $x$, to mamy $β_0 + β_1 x$ (równanie prostej).
+
+Ogólnie: jeśli: $X=(1,x_1,x_2,…,x_p)$
+oraz $β=(β_0,β_1,β_2,…,β_p)^T$
+to:
+$Xβ=β_0+β_1x_1+β_2x_2+⋯+β_px_p$
+
+czyli: suma zmiennych  $x_i$ pomnożonych przez współczynniki  $β_i$
+
+Zamiast równań (1'--2') równanie regresji można zapisać następująco:
+
+$$
+y = Xβ + \epsilon
+$$
+
+gdzie $\epsilon \sim N(0, \sigma^2)$. Jeżeli teraz obliczymy średnią (wartość
+oczekiwaną mówiąc precyzyjnie) to otrzymamy $E(y|X) = X\beta$, 
+bo zakładamy, że $E(\epsilon) = 0$. Średnie wartości $y$ są równe kombinacji liniowej $X$,
+albo $X$ objaśnia zmienność  $y$ (w sensie statystycznym), czyli: znając 
+$X$, możemy przewidywać  $y$.
+
+**Typowa analiza**: 
+Opisanie zależności między **zmienną zależną** (objaśnianą) $y$ a jedną
+lub wieloma **zmiennymi niezależnymi**
+(objaśniającymi). Pozwala ustalić kierunek i siłę związku między zmiennymi oraz
+przewidywać wartości zmiennej zależnej dla nowych danych.
+
+Analiza regresji składa się z trzech etapów:
+
+1. wyznaczenie wartości parametrów $\beta$ (na podstawie próby)
+
+2. ocena dopasowania modelu
+
+3. ocena spełnienia założeń co do wykorzystywanego modelu
+
+Interpretacja parametrów modelu: jeżeli wartość zmiennej $X$
+rośnie o jednostkę to wartość zmiennej $y$ zmienia
+się przeciętnie o $b_1$ jednostek zmiennej $y$.
+
+Ponieważ współczynniki regresji $b_1, …, b_k$ mogą być wyrażone w różnych jednostkach miary,
+bezpośrednie ich porównanie jest niemożliwe; mały współczynnik może w rzeczywistości być ważniejszy niż większy.
+Jeżeli chcemy porównywać wielkości współczynników, to trzeba je **zestandaryzować**.
+
+Standaryzowany współczynnik regresji dla $i$-tej zmiennej
+obliczony jest poprzez pomnożenie współczynnika regresji $b_i$ przez $s_{xi}$
+i podzielenie przez $s_y$:
+
+$$\beta_i = b_i \frac{s_{x}}{s_y}$$
+
+Dla przypomnienia: $s_{x}$
+to odchylenie standardowe zmiennej $X$, a $s_y$ to odchylenie standardowe zmiennej $y$.
+Interpretacja współczynnika standaryzowanego jest cokolwiek dziwaczna:
+zmiana zmiennej $X_i$ o jedno odchylenie standardowe ($s_{xi}$)
+skutkuje zmianą zmiennej $Y$ o $b_i$ jej odchylenia standardowego $s_y$.
+Na szczęście współczynniki regresji standaryzuje się nie w celu lepszej interpretacji,
+tylko w celu umożliwienia porównania ich względnej wielkości.
+W publikacjach medycznych zwykle używa się litery $b$ na
+oznaczenie współczynników niestandaryzowanych,
+a litery $\beta$ na oznaczenie współczynników standaryzowanych.
+
+Do oceny dopasowania modelu do danych używamy **reszt** (ang. *residual*),
+tj. różnic pomiędzy wartościami zmiennej $y$
+obliczonej na podstawie modelu, a wartościami $y$ zaobserwowanymi w próbie:
+
+$$\hat e_i = y_i - \hat y_i$$
+
+gdzie:
+
+$\hat e_i$ jest $i$-tą resztą (odpowiadającą $i$-tej obserwacji w próbie);
+
+$\hat y_i = X_i \hat \beta_i$ jest $i$-tą wartością zmiennej $y$
+obliczoną na podstawie modelu (tj dla wartości $X_i$);
+
+$\hat \beta_i$ jest oceną (oszacowaniem) prawdziwej wartości $\beta_i$
+(której nigdy nie znamy)
+
+**Wariancją resztową** (*error variance*) nazywamy:
+
+$$s_e^2 = \frac{\sum_{i=1}^n e_i^2}{n - k - 1 }$$
+
+gdzie: $n$ oznacza liczebność próby a $k$ liczbę zmiennych $X$.
+
+Pierwiastek kwadratowy z $s_e^2$ nazywamy **średnim błędem szacunku** (*mean squared error* albo MSE)
+
+Zawsze jest spełnione $\sum_{i=1}^n \hat e_i = 0$
+
+Można udowodnić, że prawdziwe jest:
+
+$$ \sum_{i=1}^n (y_i - \bar y) =  \sum_{i=1}^n (\hat y_i - \bar y_i) + \sum_{i=1}^n \hat e_i^2 $$
+
+$OSK = \sum_{i=1}^n (y_i - \bar y)$ to ogólna suma kwadratów;
+
+$WSK = \sum_{i=1}^n (\hat y_i - \bar y_i)$ to wyjaśniona (przez model) suma kwadratów;
+
+$RSK = \sum_{i=1}^n (y_i - \bar y)$ resztowa suma kwadratów;
+
+Zatem:
+
+$$OSK = WSK + RSK$$
+
+Po podzieleniu przez $OSK$ otrzymujemy:
+
+$$1 = WSK/OSK + RSK/OSK$$
+
+Wielkość $WSK/OSK$ nazywamy **współczynnikiem determinacji** i oznaczamy jako $R^2$ (R-kwadrat).
+
+Interpretacja: udział (procent) zmienności zmiennej $y$ objaśniany przez model.
+
+Można wykazać, że jeżeli faktycznie $\epsilon \sim N(0, \sigma^2)$
+wtedy oceny współczynników $\hat\beta_i$ mają rozkład $t$-Studenta.
+Znając rozkład $\hat\beta_i$ można zweryfikować hipotezę:
+
+$H_0: \beta_i = 0$
+
+względem hipotezy alternatywnej
+
+$H_1: \beta_i \not = 0$
+
+Odrzucenie $H_0$ oznacza, że \beta_i jest istotnie różny od zera, tj. istnieje
+zależność pomiędzy $y$ oraz $X$.
+
+**Podsumowanie**: ocena dopasowania modelu = obliczenie $\hat e$, $R^2$ oraz
+zweryfikowanie hipotez postaci $H_0: \beta_i = 0$.
+
+Oceny spełnienia założeń co do wykorzystywanego modelu dokonuje się weryfikując
+stosowne testy statystyczne (patrz przykład)
+
+**Raport powinien zawierać**: oszacowania punktowe i przedziałowe parametrów,
+współczynniki standaryzowane, średni błąd szacunku, współczynnik determinacji
+oraz wyniki weryfikacji hipotez dotyczących istotności poszczególnych parametrów modelu.
+
+### Przykład (kontynuacja poprzedniego)
+
+Hipoteza badawcza: poziom hemoglobiny jest istotnie zależny od wartości PCV oraz wieku pacjentki:
+
+$$\textrm{Hb} = \textrm{PCV} + \textrm{age}$$
+
+Następujący wydruk z programu statystycznego zawiera oszacowanie modelu:
+
+
+```{r}
+m1 <- lm(hb ~ pcv + age, data=machin)
+summary(m1)
+```
+
+Po wyrazie `Coefficients:` mamy oceny punktowe parametrów (kolumna `Estimate`),
+średnie błędy ocen parametrów (kolumna `Str. error`) oraz wartości $p$ (kolumna `Pr(>|t|)`.
+Poniżej na wydruku można odszukać: współczynnik determinacji (`Multiple R-squared`
+oraz średni błąd szacunku (`Residual standard error`).
+
+Brakuje oszacowań przedziałowych oraz wielkości standaryzowanych. Część programów statystycznych
+drukuje wszystko co potrzebujemy od razu, część tego nie nie potrafi i trzeba to doliczyć osobno.
+Mój nie potrafi.
+Tak czy siak, w raporcie należy zestawić wszystko razem, najlepiej w postaci tabeli:
+
+```{r}
+lm.1.coef <- as.data.frame(coef(summary(m1)))
+lmr <- summary(m1)$r.squared
+lmse <- summary(m1)$sigma
+
+## wielkości standaryzowane
+lm.1.std <- round(coef(lm.beta(m1)), 2)
+## Przedziały ufności
+lm.1.ci <- round(confint(m1), 2)
+
+lm_ci_txt <- sprintf ("%s %s", format(lm.1.ci[,1], decimal.mark=",", digits=3),
+ format(lm.1.ci[,2], decimal.mark=",", digits=3) )
+
+## zestawienie tabelaryczne wyników
+lm.1.coef.df <- tibble::rownames_to_column(lm.1.coef, "Parametr") %>%
+  mutate(std=lm.1.std,  ci=lm_ci_txt)
+
+knitr::kable(lm.1.coef.df, row.names = F, digits=3,
+      col.names = c('Zmienna', 'B', 'SE', 'z', 'p', 'Beta', 'CI95'), booktabs = TRUE )
+```
+
+Pod tabelą należy umieścić wartość współczynnika determinacji
+(`r lmr *100`%)
+oraz średniego błędu szacunku (`r lmse`).
+
+ChatGPT: Jak policzyć przedziały ufności i wielkości standaryzowane dla wsp. regresji w R oraz w gretlu? 
+
+https://chatgpt.com/c/69dc8368-2b60-8330-8df2-83f7518f8f0f
+
+## Regresja logistyczna
+
+Jeżeli $p$ oznacza prawdopodobieństwo to $\frac{p}{1-p}$ jest **szansą** (*odds*);
+
+Potocznie prawdopodobieństwo i szansa to (prawie) to samo, ale nie w statystyce:
+prawdopodobieństwo to liczba z przedziału $[0,1]$ podczas gdy szansa to liczba
+z przedziału $[0,\infty]$
+
+Przykładowo:
+
+| Prawdopodobieństwo $p$       |    Szansa $o$    |
+|------------------------------|------------------|
+| 0,5                          |   0,5            |
+| 0,95                         |  19,0            |
+
+Stosunek szansy (wystąpienia zdarzenia) w jednej grupie
+do szansy jego wystąpienia w innej grupie określa się jako iloraz szans (*odds ratio*, OR)
+
+Właściwości:
+
+$OR < 1$ szansa wystąpienia zdarzenia w pierwszej grupie jest mniejsza niż w drugiej.
+
+Przykładowo: $OR=0.9$ -- szansa wystąpienia zdarzenia w grupie 1 jest
+10% mniejsza niż w grupie 2.
+$OR=0.05$ -- szansa wystąpienia zdarzenia w grupie 1 jest 95% mniejsza
+niż w grupie 2 (albo 20 razy mniejsza)
+
+Ogólnie: procentowa zmiana szans = $(OR − 1) \times 100$%
+
+
+
+$OR = 1$ szansa wystąpienia zdarzenia w obu grupach jest identyczna;
+
+$OR > 1$ szansa wystąpienia zdarzenia w pierwszej grupie jest większa niż w drugiej
+
+Wiedząc teraz co to jest $OR$ możemy przejść do modelu regresji logistycznej.
+
+**W modelu regresji logistycznej zmienna $y$ jest zmienną binarną, tj. taką która może przyjąć
+tylko dwie wartości (np. umarł/żyje); z tego powodu nie da zastosować modelu „normalnej” regresji**. 
+Typowa sytuacja to ustalenie zależności pomiędzy zachorowaniem na osteoporozę ($y$, binarna),
+a płcią, wiekiem oraz poziomem witaminy D.
+
+Jedną z wartości zmiennej $y$ określa się jako **sukces** (wystąpienie choroby, śmierć, itd)
+i przypisuje jej wartość 1, natomiast drugą wartość 
+określa się jako **porażka** (brak choroby) i przypisujej jej wartość 0.
+
+W modelu regresji logistycznej równania (1--2) można zapisać bardziej precyzyjnie jako:
+
+$$
+\begin{align}
+y|X \sim B(1, p(X)) \tag{1''}\\
+E(y|X) = p = \frac{\exp(X \beta )}{(1 + \exp (X \beta)} \tag{2''}
+\end{align}
+$$
+
+Zmienna $y$ dla każdej wartości $X$ ma rozkład dwumianowy
+z prawdopodobieństwem sukcesu $p$ zależnym od wartości zmiennych $X$ (równanie 1'')
+
+Średnia wartość zmiennej $y$ dla każdej wartości $X$ (która w rozkładzie dwumianowym
+jest równa $p$) jest określona przez dziwną formułę po prawej równania 2'':
+
+$$
+\frac{\exp(X \beta )}{(1 + \exp (X \beta)}
+$$
+
+gdzie $\exp(x)$ oznacza $e^x$ ($e$ to podstawa logarytmu naturalnego, $e\approx 2,7182...$)
+
+Szczęśliwie równanie (2'') można przedstawić w wersji równoważnej:
+
+$$\ln(\frac{p}{1-p}) = X \beta$$
+
+gdzie $\ln$ oznacza logarytm naturalny (czyli przy podstawie $e$)
+
+Zauważmy, że $\frac{p}{1-p}$ to szansa; czyli po lewej stronie równania mamy **logarytm szansy**; takie coś nosi nazwę **logit**, tj.:
+
+$$
+\textrm{logit}(p) = \ln(\frac{p}{1-p})
+$$
+
+Teraz najciekawsze:
+
+Rozważmy model z jedną zmienną:
+
+$$\ln(o)= \beta_0 + \beta_1 W$$
+
+gdzie: $o$ oznacza szansę wystąpienia osteoporozy, a $W$ oznacza wiek. Obliczmy
+różnicę pomiędzy $\ln(o)$
+dla wartości $W=w$ oraz $W=w+1$ (czyli dla zmiany o jednostkę):
+
+$$
+\begin{align}
+\ln (o_{w+1}) - \ln(o_{w}) =\\
+\beta_0 + \beta_1 (w + 1 ) - (\beta_0 + \beta_1 (w)) = \beta_1
+\end{align}
+$$
+
+gdzie $o_{w}$ szansa osteoporozy przy wieku równym $w$; $o_{w+1}$ szansa osteoporozy
+przy wieku równym $w + 1$
+
+Obustronnie delogarytmując powyższe równanie otrzymujemy ostatecznie:
+
+$$\frac{o_{w+1}}{o_{w}} = e^{\beta_1}$$
+
+Czyli $e^{\beta_1}$ jest **ilorazem szans**; grupa 1 to osoby w wieku $w$, a grupa 2 to osoby w wieku $w+1$;
+albo inaczej: każdy dodatkowy rok oznacza wzrost (lub spadek w zależności od wartości $e^\beta_1$) szansy
+na osteoporozę o $(e^{\beta_1} − 1) \times 100$%.
+
+Jeżeli model zawiera więcej niż jedną zmienną $X$ to powyższa interpretacja dalej obowiązuje:
+jeżeli $X_i$ wzrośnie to iloraz szans zmieni się o $(e^{\beta_i} − 1) \times 100$%, przy założeniu
+że pozostałe zmienne $X$ mają ustalone wartości.
+
+Ocena dopasowania modelu
+
+Nie ma w przypadku regresji logistycznej możliwości obliczenia sumy
+kwadratów reszt czy współczynnika zbieżności.
+Model ocenia się, 
+używając jako kryterium **dewiancję** (*deviance*), której
+wielkość zależy od proporcji pomiędzy liczbą sukcesów obliczonych
+na podstawie modelu a liczbą sukcesów zaobserwowanych.
+Dewiancja będzie tym większa, im różnica między tymi
+teoretycznymi liczebnościami a liczebnościami empirycznymi będzie większa.
+
+Porównuje się wielkość dewiancji szacowanego modelu
+z modelem zerowym (*null model*), tj. modelem, w którym po prawej stronie
+równania występuje tylko stała.
+
+Zamiast współczynnika zbieżności $R^2$ stosuje się
+współczynniki pn. pseudo-$R^2$, takie jak pseudo-$R^2$  McFaddena lub pseudo-$R^2$ Nagelkerke. 
+Ich interpretacja
+jest podobna do „normalnego“ $R^2$: im bliżej zera, tym gorzej, im
+bliżej jedności, tym lepiej.
+
+Minimalne kryteria oceny przydatności modelu regresji logistycznej:
+mała dewiancja, duże wartości współczynników pseudo-$R^2$,
+dewiancja istotnie mniejsza od modelu zerowego
+oraz
+istotnie różne od zera parametry przy zmiennych niezależnych.
+
+Raport powinien zawierać: oszacowania punktowe parametrów,
+punktowe i przedziałowe wartości oceny ilorazu szans oraz wyniki weryfikacji hipotez dotyczących istotności poszczególnych
+parametrów plus wartość dewiancji, weryfikację jej istotności 
+oraz wartości współczynników pseudo-$R^2$.
+
+
+### Przykład (kontynnuacja poprzedniego)
+
+Zmienna `anemia` ma wartość 1 jeżeli stwierdzono anemię, a wartość 0 jeżeli
+jej nie stwierdzono (plik `hb-pcv-age.csv`).
+
+Hipoteza badawcza: ryzyko wystąpienia
+anemii jest istotnie
+zależne od wartości PCV oraz wieku pacjentki:
+
+$$
+\textrm{logit}(p) = β₀ + β₁\textrm{PCV} + β₂\textrm{wiek}
+$$
+
+gdzie $p$ oznacza prawdopodobieństwo wystąpienia anemii.
+
+Następujący wydruk z programu statystycznego zawiera oszacowanie modelu:
+
+```{r}
+m2 <- glm(anemia ~ pcv + age, family = 'binomial', data = machin)
+summary(m2)
+```
+
+Po wyrazie `Coefficients:` mamy oceny punktowe parametrów (kolumna `Estimate`),
+średnie błędy ocen parametrów (kolumna `Str. error`) oraz wartości $p$ (kolumna `Pr(>|t|)`.
+Poniżej na wydruku można odszukać: dewiancję modelu zerowego (`Null deviance`) oraz
+dewiancję modelu estymowanego (`Residual deviance`).
+
+Brakuje ilorazów szans oraz przedziałów ufności dla ilorazów szans.
+Brakuje też współczynników pseudo-$R^2$ oraz weryfikacji istotności różnicy
+modelu estymowanego względem zerowego (potocznie: czy model jest istotny).
+Część programów statystycznych
+drukuje wszystko co potrzebujemy od razu, część tego nie nie potrafi i trzeba to doliczyć osobno.
+Mój nie potrafi.
+Tak czy siak, w raporcie należy zestawić wszystko razem, najlepiej w postaci tabeli:
+
+
+```{r, warning=FALSE}
+gml.1.coef <- as.data.frame(coef(summary(m2)))
+## OR
+glm.1.or <- round(exp(coef(m2)), 2)
+## Przedziały ufności
+glm.1.ci <- round(exp(confint(m2)), 2)
+##glm_ci_txt <- sprintf ("%.3f %.3f", glm.1.ci[,1], glm.1.ci[,2] )
+glm_ci_txt <- sprintf ("%s %s", format(glm.1.ci[,1], decimal.mark=",", digits=3), format(glm.1.ci[,2], decimal.mark=",", digits=3) )
+
+## Istotność modelu
+pchisq.glm.1 <- pchisq(m2$null.deviance -  m2$deviance, m2$df.null - m2$df.residual, 
+                       lower.tail = F)
+##
+mcfadden.1 <- PseudoR2(m2, which='McFadden')
+nagelkerke.1 <- PseudoR2(m2, which='Nagelkerke')
+
+## zestawienie tabelaryczne wyników
+gml.1.coef.df <- tibble::rownames_to_column(gml.1.coef, "Parametr") %>%
+  mutate(or=glm.1.or,  ci=glm_ci_txt)
+
+kable(gml.1.coef.df, row.names = F, digits=3,
+      col.names = c('Parametr', 'Ocena', 'SE', 'z', 'p', 'OR', 'CI95'), booktabs = TRUE )
+```
+
+
+Wzrost wartości PCV o 1% oznacza zmniejszenie szansy na anemię o `r -((0.74 - 1) * 100)`%;
+Każdy dodatkowy rok zmniejsza szansę na anemię o `r -((0.56 - 1) * 100)`%.
+Obie wartości **nie są** istotne statystycznie, o czym świadczą wartości $p$
+wynoszące odpowiednio $0,156$ oraz $0,142$.
+
+Model jest istotny (ponieważ $p$ jest równe `r pchisq.glm.1`);
+wartość pseudo-$R^2$ Nagelkerke wynosi `r nagelkerke.1`;
+wartość pseudo-$R^2$ McFaddena wynosi `r mcfadden.1`.
+
+Gdybyśmy estymowali model używając liczeniejszej próby a nie nędznych 20 pacjentek,
+to zapewne oceny parametrów byłyby istotne i wszyscy by żyli długo i szczęśliwie :-)
+
+
+## Framingham Heart Study
+
+Projekt Framingham (Framingham Heart Study) to jedno z najważniejszych
+i najdłużej trwających badań epidemiologicznych w historii medycyny.
+
+Został rozpoczęty w 1948 roku w mieście Framingham
+i miał na celu zrozumienie, jakie czynniki wpływają na rozwój chorób serca.
+
+https://en.wikipedia.org/wiki/Framingham_Heart_Study
+
+Jeden z wariantów tego zbioru dostępny po zainstalowaniu pakietu
+`riskCommunicator` w środowisku R.
+Zbiór ten zawiera m.in. następujące zmienne:
+
+* PERIOD:  Examination Cycle. 1 = Period 1 (n = 4434),  2 = Period 2 (n = 3930), 3 = Period 3 (n = 3263)
+
+* SEX: 1=male, 2=female
+
+* TOTCHOL: Serum Total Cholesterol (mg/dL)
+
+* TOTCHOL3: Serum Total Cholesterol (nominal scale: Low/Medium/High)
+
+* AGE: age in years at exam.
+
+* AGE3: age in years at exam (nominal scale: Low/Medium/High)
+
+* SYSBP: Systolic Blood Pressure
+
+* DIABP: Diastolic Blood Pressure
+
+* CURSMOKE = Current cigarette smoking at exam.
+  0 = Not current smoker, 1 = Current smoker
+
+* CIGPDAY: Number of cigarettes smoked each day. 0 = Not current smoker.
+
+* BMI: Body-mass index
+
+* BMI3: Body-mass index (nominal scale: Low/Medium/High)
+
+* DIABETS:  0 = not a diabetic, 1 = Diabetic
+
+* BPMEDS: Use of Anti-hypertensive medication at exam.
+  0 = Not currently used, 1 = Current use.
+
+* HEARTRTE: heart rate.
+
+* GLUCOSE: Casual serum glucose (mg/dL).
+
+* PREVMI: Prevalent Myocardial Infarction. 0 = Free of disease,
+  1 = Prevalent disease. (Przebyty zawał mięśnia sercowego.)
+   
+* PREVSTRK = Prevalent Stroke. 0 = Free of disease, 1 = Prevalent disease.
+
+* REVHYP = Prevalent Hypertensive. 0 = free ;
+  1 = prevalent disease (Nadciśnienie tętnicze)
+
+* DEATH: Death from any cause. 0 = Did not occur during followup,
+  1 = Did occur during followup.
+  
+* ANGINA Angina Pectoris. 0 = Did not occur during followup,
+  1 = Did occur during followup. (Dławica piersiowa.)
+
+* CVD
+Myocardial infarction, Fatal Coronary Heart Disease, Atherothrombotic infarction, Cerebral Embolism, Intracerebral Hemorrhage, or Subarachnoid Hemorrhage or Fatal Cerebrovascular Disease. 
+0 = Did not occur during followup, 1 = Did occur during followup.
+
+* TIMEDTH: Number of days from Baseline exam to death
+  if occurring during followup
+  or Number of days from Baseline to censor date
+
+* TIMECVD: Number of days from Baseline exam to first CVD event during
+    followup or Number of days from Baseline to censor date.
+    
+* TIMESTRK: Number of days from Baseline exam to first STROKE event
+
+Plik `framingham.csv` ograniczony do pacjentów dla `PERIOD==1`
+
+```{r}
+f0 <- read.csv("framingham.csv", dec = ".", sep = ";", header=T, na.string="NA")
+```
+
+
+### Analiza wariancji
+
+cholesterol = BMI3
+
+```{r}
+anova.test <- oneway.test(TOTCHOL ~ BMI3, data=f0)
+anova.test
+```
+
+### Regresja liniowa
+
+cholesterol = age + BMI + sex + smoking
+
+```{r}
+m1 <- lm(TOTCHOL ~ AGE + BMI + SEX + CURSMOKE, data=f0)
+summary(m1)
+```
+
+### Regresja logistyczna
+
+heartDisease = age + BMI + sex + cholesterol + smoking
+
+```{r}
+m2 <- glm(CVD ~ AGE + BMI + SEX + TOTCHOL + CURSMOKE, family = 'binomial', data = f0)
+summary(m2)
+```

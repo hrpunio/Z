@@ -1,0 +1,53 @@
+---
+title: "Analiza szeregów czasowych"
+author:
+  name: Tomasz Przechlewski
+  email: "t.plata-przechlewski@psw.kwidzyn.edu.pl"
+  affiliation: Powiślańska Szkoła Wyższa (Kwidzyn/Poland)
+date: "21/2/2026"
+output:
+  html_document:
+    css: custom.css
+  pdf_document:
+    keep_tex: true
+    latex_engine: lualatex
+description: "(c) Tomasz Przechlewski / CC-BY license"
+header-includes: \usepackage{custom}
+---
+
+## Rodzaje danych
+
+Przekrojowe = jednokrotny pomiar w tym samym momencie
+
+Szeregi czasowe = wielokrotny pomiar powtarzany w pewnym stałym odstępie czasu
+(dane roczne, kwartalne, miesięczne, tygodniowe, dzienne itd)
+
+W szeregu czasowym można zwykle wyróżnić długookresową tendencję (trend);
+powtarzalne wahania (sezonowość, np. liczba zgonów rośnie zimą, a spada latem);
+resztę traktuje się jako wartości przypadkowe. Reasumując:
+
+$$TS = T + S + E$$
+
+lub 
+
+$$TS = T \cdot S \cdot E$$
+
+Pierwszy wariant nazywa się **addytywny** drugi **multiplikatywny**. 
+W wariancie addytywnym zmiany
+(trendu/sezonowości) okres/okres są stałe; w wariancie multiplikatywnym **tempo zmiany** jest stałe, tj. zjawisko okres/okres rośnie/spada o x%. W jednostkach bezwzględnych
+oznacza to, że rośnie/spada coraz szybciej.
+
+Celem statystycznej analizy szeregów czasowych jest opisanie
+oraz prognozowanie zmian wartości obserwowanych w czasie (na podstawie danych historycznych).
+
+Generalnie jest to trudne zadanie, mówiąc oględnie :-)
+Ponieważ jest trudne, to metod i modeli jest *multum*. W tym dokumencie omówimy metody elementarne:
+wykres liniowy, średnie tempo zmian oraz trend liniowy
+
+## Wykres liniowy
+
+## Średnie tempo zmian
+
+## Trend liniowy
+
+

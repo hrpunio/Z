@@ -1,0 +1,341 @@
+---
+title: "Analiza przeżycia"
+author:
+  name: Tomasz Przechlewski
+  email: "t.plata-przechlewski@psw.kwidzyn.edu.pl"
+  affiliation: Powiślańska Szkoła Wyższa (Kwidzyn/Poland)
+date: "21/2/2026"
+output:
+  html_document:
+    css: custom.css
+  pdf_document:
+    keep_tex: true
+    latex_engine: lualatex
+description: "(c) Tomasz Przechlewski / CC-BY license"
+header-includes: \usepackage{custom}
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+library('tidyverse')
+library('survival')
+library('survminer')
+library('knitr')
+library ("DescTools")
+```
+
+
+## Podstawowe pojęcia
+
+Badany jest **czas** jaki upłynął od początku obserwacji do
+wystąpienia określonego zdarzenia (np. śmierci, awarii urządzenia, powrotu
+choroby). Obserwowanych jest $n$ jednostek, w pewnym
+przedziale czasu (a nie w nieskończoność.)
+
+W związku z tym
+dane mogą zawierać **obserwacje cenzorowane** albo ucięte (censored).
+Obserwacje mogą
+być ucięte **przedwcześnie** wtedy kiedy jednostka z jakiś powodów
+nie może być dalej obserwowana lub też punktem ucięcia może być
+zakończenie badania, przed zaobserwowaniem **określonego zdarzenia**
+
+Jeżeli obserwowany jest czas od diagnozy do śmierci spowodowanej
+przez pewien rodzaj nowotworu to część pacjentów może dalej żyć w momencie
+zakończenia badania a część może umrzeć z innych przyczyn lub
+stracono z nimi kontakt (leczą się gdzie indziej.)
+
+Przykładowo obserwowano przez 150 tygodni (czas) siedmiu takich pacjentów:
+
+| numer | czas | zdarzenie | typ |
+|------:|-----:|----------:|----:|
+| 1     | 44   | zmarł     | n   |
+| 2     | 65   | zmarł     | n   |
+| 3     | 145  | żyje      | c   |
+| 4     | 30   | zmarł     | n   |
+| 5     | 60   | żyje      | c   |
+| 6     | 125  | zmarł     | n   |
+| 7     | 150  | żyje      | c   |
+
+Kolumna „typ” oznacza rodzaj obserwacji: uciętą (c) oraz nieuciętą (n). 
+Obserwacje 1, 2, 4 oraz 6 zakończyły się zdarzeniem, dlatego są nieucięte. 
+Pacjenci 3 oraz 5 byli obserwowani odpowiednio przez 145 i 60 tygodni, po czym utracono z nimi kontakt. Pacjent numer 7 był ciągle żywy w momencie zakończenia badania.
+
+Obecność **obserwacji cenzorowanych** jest specyficzna dla metod
+opracowanych w kontekście analizy przeżycia.
+
+Czas do zdarzenia jest zmienną losową. Można ją opisywać w sposób klasyczny — za pomocą dystrybuanty lub funkcji gęstości — częściej jednak korzysta się z alternatywnych narzędzi: **funkcji przeżycia** oraz **funkcji hazardu**.
+
+**Funkcja przeżycia** (*survival function*): prawdopodobieństwo
+przeżycia w czasie dłuższym niż $t$
+
+$$S(t)=P(T>t)$$
+
+**Funkcja hazardu** (albo współczynnik hazardu, bo ta funkcja to współczynnik)
+definiuje **natychmiastowe** (w nieskończenie małym przedziale)
+ryzyko zajścia zdarzenia w czasie $t$,
+przy założeniu, że jednostka przetrwała do tego momentu
+
+\begin{equation}
+h(t) = \lim_{\Delta t \to 0} \frac{P \left( t \leq T < t + \Delta t
+\vert T \geq t \right)}{\Delta t} 
+\end{equation}
+
+Funkcję hazardu można interpretować jako **oczekiwaną liczbę zdarzeń na
+jednostkę badaną w jednostce czasu** ($\Delta t =1$):
+
+\begin{equation}
+h(t) = P ( t \leq T < t + 1 \vert T \geq t )
+\end{equation}
+
+Jeśli funkcja hazardu dla zgonu w pewnej grupie ludzi wynosi 0,05 jednostki/rok, 
+oznacza to, oczekujemy 0,05 zgonu rocznie. Jeżeli ludzi w grupie jest $n$,
+oczekujemy $0,05 \times n$ zgonów rocznie (założyliśmy $\Delta=1$ rok).
+Należy pamiętać, że prawdziwa funkcja hazardu opisuje ryzyko chwilowe, 
+definiowane w granicy $Δt→0$
+
+
+**Skumulowana funkcja hazardu**
+
+Funkcja hazardu jest nieujemna.
+
+Suma hazardu od 
+$0$ do $t$ to skumulowana funkcja hazardu. Ponieważ 
+$t$ jest zmienną ciągłą, definiuje się ją formalnie jako całkę oznaczoną:
+
+$$
+\begin{equation}
+H(t) = \int_0^t h(u)du
+\end{equation}
+$$
+
+Skumulowana funkcja hazardu 
+$H(t)$ opisuje skumulowaną intensywność ryzyka zdarzenia do czasu 
+$t$
+i jest powiązana z prawdopodobieństwem przeżycia poprzez zależność 
+$S(t)=\exp(−H(t))$.
+
+## Estymator Kaplana–Meiera
+
+Estymator Kaplana–Meiera jest  estymatorem funkcji przeżycia 
+$S(t)$ postaci:
+
+$$
+\hat S(t)=∏_{ t_i ≤t}( 1− \frac{d_i}{n_i})
+$$
+
+gdzie: $t_i$ – kolejne czasy zdarzeń;
+$d_i$ – liczba zdarzeń w czasie  $t_i$;
+$n_i$ – liczba osób „narażonych” w czasie $t_i$.
+
+$p_i = 1 - d_i/n_i$ to warunkowe prawdopodobieństwo przeżycia w czasie $i$;
+(warunkowe tzn. liczone dla tych pacjentów, którzy dożyli czasu $i-1$)
+
+Przykładowo: jeżeli obserwujemy grupę pacjentów SOR przez trzy dni, to $p_1$ oznacza 
+prawdopodobieństwo przeżycia pierwszego dnia, $p_2$ --
+prawdopodobieństwo przeżycia drugiego dnia a $p_3$ --
+prawdopodobieństwo przeżycia trzeciego dnia
+
+$$S(3) = p_1 \cdot p_2 \cdot p_3$$
+
+oznacza prawdopodobieństwo
+przeżycia w czasie dłuższym niż $t=3$ czyli mówiąc po polsku
+przeżycia co najmniej trzech dni.
+
+Oceny wartości estymatora Kaplana–Meiera można przedstawić w tabeli, jednak zwykle prezentuje się je w postaci wykresu (krzywej Kaplana–Meiera).
+
+### Przykład (NCCTG Lung Cancer Data)
+
+Dane pochodzą z badania klinicznego dotyczącego pacjentów z rakiem płuca, 
+prowadzonego przez North Central Cancer Treatment Group (NCCTG).
+Dane pochodzą z pakietu `survival` (R) i są dostępne w pliku `lung.csv`. 
+
+Zbiór zawiera informacje o pacjentach oraz ich czasie przeżycia po diagnozie i leczeniu.
+
+`time` – czas przeżycia (w dniach) od momentu włączenia do badania (postawienia diagnozy?)
+
+`status` – status pacjenta:
+1 = cenzurowany (pacjent żył w momencie zakończenia obserwacji)
+2 = zgon
+
+`age` – wiek pacjenta
+
+`sex` – płeć (1 = mężczyzna, 2 = kobieta)
+
+`ph.ecog` – ocena sprawności pacjenta (ECOG performance status)
+
+`ph.karno` – wskaźnik Karnofsky’ego (stan ogólny)
+
+`pat.karno` -- wskaźnik Karnofsky’ego oceniony przez pacjenta
+
+`wt.loss` – utrata masy ciała (funty)
+
+`meal.cal` --  dzienne spożycie kalorii (szacowane)
+
+Pierwsze sześć wierszy pliku `lung.csv` wyglądają tak:
+
+```{r}
+lung <- read.csv("lung.csv", dec = ".", sep = ";", header=T, na.string="NA")
+head(lung)
+```
+
+
+
+```{r}
+##  Surv(time, time2, event)
+##  The status indicator, normally 0=alive, 1=dead. or TRUE/FALSE (TRUE = death) or 1/2 (2=death). 
+s = Surv(lung$time, lung$status)
+```
+
+Oceny wartości estymatora Kaplana–Meiera (6 pierwszych wierszy + "..." + 3 ostatnie) oraz 
+krzywa Kaplana-Meiera
+
+
+```{r}
+sfit <- survfit(s ~ 1, data=lung)
+##summary(sfit)
+##dziewięć pierwszych wierszy + 3 ostatnie
+out <- capture.output(summary(sfit))
+res <- c(head(out, 9), "...", tail(out, 3))
+cat(res, sep = "\n")
+##plot (sfit)
+ggsurvplot(sfit, median=TRUE)
+```
+
+Kolumna `survival` to estymowane prawdopodobieństwo przeżycia
+co najmniej `time` dni. Ostatnia obserwacja (883 dzień) zawiera 4 żyjących
+pacjentów z których 1 zmarł. Po zakończeniu badania mamay ciągle trzech żywych,
+zatem ostatnia ocena $S(t)$ jest większa od zera, bo nie wiemy co będzie
+później...
+
+Krzywą Kaplana–Meiera można wykreślić osobno dla każdej grupy 
+wyznaczonej przez wartości zmiennej nominalnej. Taką zmienną w zbiorze 
+*NCCTG Lung Cancer Data* jest płeć (`sex`)
+
+Oceny wartości estymatora Kaplana–Meiera (6 pierwszych wierszy + “…” + 3 ostatnie) oraz krzywa Kaplana-Meiera
+
+```{r}
+sfit = survfit(Surv(time, status)~sex, data=lung)
+##summary(sfit)
+out <- capture.output(summary(sfit))
+res <- c(head(out, 9), "...", tail(out, 3))
+cat(res, sep = "\n")
+
+sfit = survfit(Surv(time, status)~sex, data=lung)
+##plot(sfit)
+ggsurvplot(sfit)
+```
+
+Można na oko porówać krzywe albo zastosować test Mantela-Heanszela, określany także
+jako test log-rank. Hipotezą zerową w tym teście jest równość wszystkich porównywanych
+krzywych przeżycia. Hipoteza alternatywna w tej sytuacji zakłada że co najmniej 
+jedna krzywa się istotnie różni.
+
+```{r}
+logrank <- survdiff( s ~ sex, data=lung, rho=0 )
+logrank
+```
+
+Niska wartość 
+$p$ równa `r round(logrank$pval,3)` wskazuje, że należy odrzucić hipotezę zerową o identyczności funkcji przeżycia w populacjach kobiet i mężczyzn. Oznacza to, że funkcje te różnią się istotnie statystycznie.
+
+
+## Regresja Coxa
+
+Analiza z użyciem estymatora Kaplana-Meiera pozwala na porównanie krzywych przeżycia, nie
+pozwala na objaśnienie od czego zależy prawdopodobieństwo przeżycia.
+To umożliwia model proporcjonalnych hazardów Coxa, który ma postać:
+
+$$
+h(t, X) = h_0(t) \exp(X\beta)
+$$
+gdzie: $h(t, X)$ funkcja hazardu, zależna od czasu oraz $X$;
+$h_0(t)$ zerowa linia hazardu, której wartości nie zależą od $X$ a tylko od $t$,
+co odpowiada sytuacji kiedy gdy wszystkie zmienne $X$ są równe zero;
+$X$ -- wektor zmiennych (niezależnych) wpływających na funkcję hazardu;
+$\beta$ -- współczynniki modelu.
+
+Jeżeli ograniczymy się do przykładu w którym po prawej stronie występuje tylko
+jedna zmienna X, która może przyjąć dwie wartości 0 oraz 1 (zmienna binarna), wtedy:
+
+$$
+\begin{align}
+h_0(t, X=0) = h_0(t) \\
+h_1(t, X=1) = h_0(t)  \exp(X\beta)
+\end{align}
+$$
+
+stąd
+
+$$
+\textrm{HR}(t) = \frac{h_0(t)  \exp(X\beta)}{ h_0(t) } =  \exp(X\beta)
+$$
+
+$\textrm{HR}(t)$ to iloraz hazardów.
+Wynosi on $e^{β_1}$ i pozostaje stały w czasie  $t$
+(stąd nazwa: regresja proporcjonalnych hazardów).
+Krzywe hazardu mogą się zmieniać w czasie, ale
+zawsze są skalowane względem siebie tym samym czynnikiem.
+Jeżeli X=1 oznacza kobietę a X=0 mężczyznę, to krzywe hazardu kobiet
+względem mężczyn są do siebie równoległe, albo HR nie zmienia się w czasie.
+Tak może być lub nie. W regresji Coxa zakładamy że tak jest, co pozwala
+oszacować model 
+bez znajomości konkretnej postaci krzywej hazardu bazowego.
+
+Interpretacja:
+$HR > 1$ większe ryzyko zdarzenia;
+$HR < 1$ mniejsze ryzyko;
+$HR = 1$ brak wpływu.
+
+Wynik można uogólnić dla przypadku kiedy $X$ jest wektorem zmniennych niekoniecznie
+binarnych. Jeżeli $X_i$ jest zmienną ciągłą i jej wartość wzrośnie o jednostkę 
+to hazard zmieni się o $(e^{\beta_i} − 1) \times 100$%, 
+przy założeniu że pozostałe zmienne $X$ mają ustalone wartości.
+
+Ocena dopasowania modelu:
+
+Czy różnica pomiędzy modelem badanym a bazowym (pustym) jest istotna?
+Sprawdza się to za pomocą testu ilorazu wiarygodności (*likelihood ratio test*)
+
+Czy oceny poszczególnych parametrów są istotnie różne od zera
+
+Współczynniki pseudo-$R^2$
+
+### Przykład
+
+Hipoteza badawcza: Płeć i wiek mają istotny wpływ na hazard (ryzyko zdarzenia) w czasie.
+
+
+```{r}
+fit <- coxph(Surv(time, status) ~ sex + age, data=lung)
+
+summary(fit)
+```
+
+Współczynnik $\beta_{sex} = -0.513219$ jest istotny na poziomie
+0,05 (wartość $p$ jest równa 0.00218). 
+Ponieważ mężczyna = 1 a kobieta = 2, zatem kobiety mają o `r -(0.598566 - 1) *100`%
+mniejsze ryzyko zgonu niż mężczyźni.
+
+Współczynnik $\beta_{age} = 0.017045$ nie jest istotny na poziomie
+0,05 (wartość $p$ jest równa 0.06459). Gdyby był to byśmy powiedzieli
+że każdy dodatkowy rok wieku zwiększa o `r (1.017191 - 1) *100`%
+ryzyko zgonu.
+
+Model jest istotnie różny od modelu bazowego (`p=0.0009`).
+
+## Framingham Heart Study
+
+Zbiór ten opisano w materiałach dotyczących regresji i korelacji.
+
+Hipoteza badawcza: Płeć, palenie tytoniu oraz wysokie ciśnienie krwi (`SYSBP`) 
+mają istotny wpływ na hazard (ryzyko wystąpienia choroby układu sercowo-naczyniowego).
+
+Przypominam, że: `TIMECVD` to number of days from Baseline exam to first CVD event 
+during followup or Number of days from Baseline to censor date.
+
+```{r}
+f0 <- read.csv("framingham.csv", dec = ".", sep = ";", header=T, na.string="NA")
+
+m3 <- coxph(Surv(TIMECVD, CVD) ~ AGE + CURSMOKE + SYSBP, data=f0)
+summary(m3)
