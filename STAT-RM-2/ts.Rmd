@@ -15,6 +15,18 @@ description: "(c) Tomasz Przechlewski / CC-BY license"
 header-includes: \usepackage{custom}
 ---
 
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+library('tidyverse')
+library('eurostat')
+library("scales")
+
+every_nth = function(n) {
+  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})}
+
+```
+
 ## Rodzaje danych
 
 Przekrojowe = jednokrotny pomiar w tym samym momencie
@@ -44,10 +56,387 @@ Generalnie jest to trudne zadanie, mówiąc oględnie :-)
 Ponieważ jest trudne, to metod i modeli jest *multum*. W tym dokumencie omówimy metody elementarne:
 wykres liniowy, średnie tempo zmian oraz trend liniowy
 
+Pokażemy to na przykładach, ograniczając teorię do minimum.
+
 ## Wykres liniowy
+
+W przypadku szeregów czasowych wykres liniowy (ewentualnie punktowy lub słupkowy) 
+jest najpopularniejszy. Przykład: 
+z bazy danych WHO (https://www.who.int/data/gho) pobrano informacje nt odsetka
+osób dorosłych z nadwagą (BMI 30 i więcej;  *Prevalence of obesity among adults...*)
+dla Polski w latach 1975--2016.
+
+Uwaga: WHO podaje wskaźniki surowe (*crude*) i standaryzowane; pobrano surowe
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+
+obesity <- read.csv(file='obesity_POL.csv',sep=';',header=T)
+```
+
+Wykres liniowy
+
+```{r, echo=FALSE}
+popl <- ggplot(obesity, aes(x= as.Date(as.character(rok), "%Y"),
+        ##group=as.factor(plec), color=as.factor(plec), 
+        y=bmio )) +
+  geom_line(size=.5, color='steelblue' ) +
+  #geom_point(size=2.5, alpha=.3) +
+  ylab(label="%") +
+  xlab(label="") +
+  scale_x_date(breaks = date_breaks("4 years"),  labels = date_format("%Y")) +
+  #scale_color_discrete(name="Płeć", labels =c("M", 'F'),
+  #                     breaks=c('MLE', 'FMLE')) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)")
+popl
+```
+
+Interpretacja: czy zjawisko rośnie czy spada; jak szybko rośnie jak
+szybko spada. 
+
+Uwaga: można manipulować wykresem poprzez zmianę proporcji (współczynnika proporcji czyli po angielsku **aspect ratio**)
+
+
+```{r, echo=FALSE, fig.height=2.5}
+popl.flat <- ggplot(obesity, aes(x= as.Date(as.character(rok), "%Y"),
+        y=bmio )) +
+  geom_line(size=.5, color='steelblue' ) +
+  #geom_point(size=2.5, alpha=.3) +
+  ylab(label="%") +
+  xlab(label="") +
+  scale_x_date(breaks = date_breaks("4 years"),  labels = date_format("%Y")) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)")
+popl.flat
+```
+
+Teraz (optycznie) wolniej rośnie (proporcja wysokość/szerokość jest większa)...
+
+Oraz (albo raczej pośrednio) zakresem na osi OY; 
+
+Jeżeli oś OY nie zaczyna się od zera to 
+krzywa będzie bardziej stroma bo efektywnie wykres będzie miał większe
+proporcje wysokość/szerokość:
+
+```{r, echo=FALSE, fig.height=2.5}
+popl.flat <- ggplot(obesity, aes(x= as.Date(as.character(rok), "%Y"),
+        y=bmio )) +
+  geom_line(size=.5, color='steelblue' ) +
+  #geom_point(size=2.5, alpha=.3) +
+  ylab(label="%") +
+  xlab(label="") +
+  scale_x_date(breaks = date_breaks("4 years"),  labels = date_format("%Y")) +
+  coord_cartesian(ylim = c(0, NA)) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)")
+popl.flat
+```
+
+Puryści uważają że każdy wykres powinien zaczynać się od zera. Są przykłady
+zeznań przed komisją senacją w USA gdzie dowody prezentowane na wykresach
+**z niezerową linią bazową** były dyskwalifikowane jako manipulacja.
+
+Słynna książka How to lie with statistics zawiera rozdział na temat
+zatytułowany **The Gee-Whiz Graphs**; 
+https://en.wikipedia.org/wiki/Misleading_graph
+
+
+Można umieścić wiele krzywych celem porównania:
+
+```{r, echo=FALSE}
+
+popl2 <- ggplot(obesity, aes(x= as.Date(as.character(rok), "%Y"),
+        y=bmio )) +
+  geom_line(aes(y=bmik), size=.5, color = "pink" ) +
+  geom_line(aes(y=bmim), size=.5, color = "steelblue" ) +
+  #geom_point(size=2.5, alpha=.3) +
+  ylab(label="%") +
+  xlab(label="") +
+   ##scale_x_discrete( breaks = every_nth(n = 4)) +
+  scale_x_date(breaks = date_breaks("4 years"),  labels = date_format("%Y")) +
+  #scale_color_discrete(name="Płeć", labels =c("M", 'F'),
+  #                     breaks=c('MLE', 'FMLE')) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)", 
+          subtitle = "Według płci; różowe = K | niebieskie = M")
+popl2
+```
+
+Jeżeli krzywe się **dobrze zachowują** (czytaj: nie przecinają się) na to sens;
+w innym przypadku trudno jest porównać krzywe. Nie należy też przesadzać z liczbą
+krzywych na wykresie. Na pewno coś co wygląda jak splątany makaron będzie
+bezużyteczne...
+
+
+Punktowy:
+
+```{r, echo=FALSE}
+popl <- ggplot(obesity, aes(x= as.Date(as.character(rok), "%Y"),
+        ##group=as.factor(plec), color=as.factor(plec), 
+        y=bmio )) +
+  #geom_line(size=.5 ) +
+  geom_point(size=1.25, color='steelblue' ) +
+  ylab(label="%") +
+  xlab(label="") +
+  scale_x_date(breaks = date_breaks("4 years"),  labels = date_format("%Y")) +
+  #scale_color_discrete(name="Płeć", labels =c("M", 'F'),
+  #                     breaks=c('MLE', 'FMLE')) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)")
+popl
+```
+
+Nie uważam za dobry pomysł. Nie podkreśla ciągłości zjawisk w czasie
+
+Słupkowy:
+
+```{r, echo=FALSE}
+popl <- ggplot(obesity, aes(x= as.factor(rok), y=bmio )) +
+  #geom_line(size=.5 ) +
+  geom_bar(stat="identity", position=position_dodge(width=.4), fill='steelblue' ) +
+  ylab(label="%") +
+  xlab(label="") +
+   scale_x_discrete( breaks = every_nth(n = 4)) +
+  #scale_color_discrete(name="Płeć", labels =c("M", 'F'),
+  #                     breaks=c('MLE', 'FMLE')) +
+  ggtitle("Nadwaga w PL w latach 1975--2016 (BMI30 ogółem)")
+popl
+```
+
+Jest OK. Ale wielosłupki zamiast wielu linii prowadzą do problemów:
+
+```{r, echo=FALSE}
+ol <- obesity %>% 
+  pivot_longer(cols=c(bmio, bmik, bmim), names_to='sex', values_to='bmi')
+popl3 <- ggplot(ol, aes(fill=sex, y=bmi, x=as.factor(rok))) + 
+   xlab(label="") +
+   scale_x_discrete( breaks = every_nth(n = 4)) +
+  geom_bar(position="dodge", stat="identity")
+
+## albo
+popl4 <- ggplot(ol, aes(fill=sex, y=bmi, x=as.factor(rok))) + 
+   xlab(label="") +
+   scale_x_discrete( breaks = every_nth(n = 4)) +
+  geom_bar(position="stack", stat="identity")
+
+popl3
+popl4
+
+```
+
+Oba dla mnie nieczytelne a do tego ten drugi
+ wykres daje mylne wrażenie że łącznie otyłych jest 3/4 ludności
+(jak ktoś nieuważnie czyta)
+
+## Roczna i miesięczna liczba zgonów
+
+Liczba zgonów 
+w Polsce (źródło: tabela `demo_magec` w bazie Eurostat)
+oraz miesięczna liczba zgonów w Polsce 
+(źródło: tabela `demo_mmonth` w bazie Eurostat)
+
+```{r, warning=FALSE}
+z0 <- get_eurostat("demo_magec")
+
+z1 <- z0 |>
+  filter (geo == 'PL' ) |>
+  filter (sex == 'T' & age == 'TOTAL') |>
+  mutate (year = substr(TIME_PERIOD, 1, 4),
+          date = as.Date(sprintf("%s-07-01", year) )) |>
+  filter (year > 1999) |>
+  select (date, year, zgony=values) |>
+  arrange(year)
+
+p1 <- z1 |>
+  ##filter (year > 1999) |>
+  ggplot(mapping=aes(x=date, y=zgony )) +
+  geom_line(color='brown4', alpha=.3) +
+  geom_point(color='red') +
+  geom_smooth(method="lm", se=F, color='skyblue', alpha=.3) +
+  ylab('') +
+  xlab('lata') +
+  ggtitle('Liczba zgonów w Polsce w latach 2000-2024',
+          subtitle = 'Źródło: Eurostat/demo_magec')
+p1
+
+z2 <- z1 |> mutate(t = row_number())
+## dummy = 1 dla lat 2020--22
+z3 <- z2 |> mutate(covid = if_else(year >= 2020 & year <= 2022, 1, 0))
+```
+
+Dane miesięczne
+
+```{r}
+z0m <- get_eurostat("demo_mmonth")
+
+z1m <- z0m |>
+  filter (geo == 'PL' ) |>
+  filter (month != 'TOTAL' & month != 'UNK') |>
+  select (tp=TIME_PERIOD, zgony=values, month) |>
+  mutate (year = substr(tp, 1, 4), year = as.numeric(year),
+          monthno = as.numeric(substr(month, 2,3)),
+          date = as.Date(sprintf ("%s-%s-01", year, monthno))
+          ) |>
+  filter (year > 1999) |>
+  arrange(date)
+
+p1m <- z1m |>
+  ##filter (year > 1999) |>
+  ggplot(mapping=aes(x=date, y=zgony )) +
+  geom_line(color='brown4', alpha=.3) +
+  geom_point(color='red') +
+  #geom_point(aes(color = monthno == 1)) +
+  #scale_color_manual(values = c("FALSE" = "grey70", "TRUE" = "blue")) +
+  ylab('') +
+  xlab('lata') +
+  ggtitle('Liczba zgonów w Polsce w latach 2000-2025',
+          subtitle = 'Źródło: Eurostat/mmonth')
+
+p1m
+```
 
 ## Średnie tempo zmian
 
+**Wskaźniki dynamiki** (indeksy) określają względną zmianę wartości
+szeregów czasowych (popularny procent zmiany), czyli $y_t/y_0$.
+Jeżeli podstawą porównań jest okres poprzedni $y_t/y_{t-1}$ to indeks nazywany jest **łańcuchowym**, jeżeli
+podstawa porównań jest stała, tj. $y_t/y_{c}$, to indeks nazywany jest **jednopodstawowy**.
+
+Indeks zwykle wyrażone są w procentach jeżeli $y_t = 115$ a $y_0 = 100$, to
+$y_t/y_0 \cdot 100 =15$. Zjawisko ma o 15% wyższy poziom w roku $t$.
+
+
+Używamy średniej geometrycznej do obliczenia **średniego tempa zmian** zjawiska w czasie:
+
+$$\bar y_g = \sqrt[n-1]{\frac{y_2}{y_1} \frac{y_3}{y_2} \cdots
+\frac{y_n}{y_{n-1}}} = \sqrt[n-1]{\frac{y_n}{y_1}}
+$$
+
+```{r}
+stw <- z3 %>%
+  arrange(year) %>%
+  summarise(
+    cagr = (last(zgony) / first(zgony))^(1/(n() - 1)) - 1
+  ) %>%
+  mutate(cagr = cagr * 100) |>
+  unlist() |> unname ()
+## Przeciętny roczny wzrost
+## 0,942%
+diff <- last(z3$zgony)/first(z3$zgony) * 100
+```
+
+Średnie tempo zmian liczby zgonów w Polsce w latach
+2000--2024 wyniosło `r stw`, tj. przeciętnie w tym okresie
+zgony rosną o 0,4%. Wartość indeksu $y_{2024}/y_{2000}$
+wynosi `r diff`%.
+
 ## Trend liniowy
 
+Trend liniowy jest opisany równaniem:
+
+$$
+y = \beta_0 + \beta_1 t + \epsilon
+$$
+gdzie: zmienna $t$ to numer kolejnego okresu (np. $t=1,\ldots,n$)
+$\epsilon$ oznacza składnik losowy.
+
+Parametry $\beta_0$ oraz $\beta_1$ są szacowane metodą 
+najmniejszych kwadratów. Ocena modelu: jak w przypadku
+modelu regresji liniowej: wielkość współczynnika
+determinacji + istotność parametru $\beta_1$.
+Dla danych dotyczących liczby zgonów otrzymano następujące wyniki:
+
+```{r}
+t1 <- lm(zgony ~ t, data=z2)
+summary(t1)
+```
+W latach 2000–2024 przeciętny roczny wzrost liczby zgonów wynosił około 3,8 tysiąca osób. Wielkość ta jest istotna statystycznie a wartość
+współczynnika determinacji wynosi 54%.
+
+
+Przypatrując się wykresowi dostrzeżemy bez trudu, że obserwacje 
+z lat 2020--22 mocno nie leżą na linii trendu i wiemy dlaczego.
+Takie zjawisko nazywa się uczenie **zaburzeniem strukturalnym**.
+Można poprawić model dodając do niego drugą sztuczną (*dummy*)
+zmienną, której wartości będą się równać 1 dla lat 2020--2022
+oraz zero w pozostałych latach.
+
+Taką zmienną nazywa się też często **zmienną zero-jedynkową**
+
+$$
+y = \beta_0 + \beta_1 t + \beta_2 \textrm{covid} + \epsilon
+$$
+
+gdzie: $\textrm{covid}=1$ w latach 2020--2022 oraz 0 w pozostałych
+
+```{r}
+## Dodajeym dummy
+## https://www.studocu.com/pl/document/politechnika-gdanska/ekonometria/ekonometria-wyklad-12-13-modele-sezonowosci-i-zmienne-zerojedynkowe/126703806
+
+t2 <- lm(zgony ~ t + covid, data=z3)
+summary(t2)
+write.table(z3, 'zgony_pl.csv', sep=';', row.names = FALSE)
+```
+Po uwzględnieniu efektu COVID, liczba zgonów w okresie 2000--2024 
+rosła średnio o ok. 2,2 tys. rocznie.
+W latach 2020–2022 liczba zgonów była przeciętnie wyższa o ok. 75 tys. rocznie w porównaniu do poziomu wynikającego z trendu.
+
+Oba współczynniki są istotne statystycznie, a wartość
+współczynnika determinacji wynosi prawie 90% (poprzednio 54%).
+
+
+## Sezonowość
+
+Prosty model trendu dla danych miesięcznych będzie — z oczywistych względów — słabo dopasowany do danych.
+
+```{r}
+z2m <- z1m |> mutate(t = row_number())
+z3m <- z2m |> mutate(covid = if_else(year >= 2020 & year <= 2022, 1, 0))
+
+t1 <- lm(zgony ~ t, data=z2m)
+summary(t1)
+write.table(z2m, 'zgony_pl_m.csv', sep=';', row.names = FALSE, quote = FALSE)
+```
+W latach 2000–2024 przeciętny **miesięczny** wzrost liczby zgonów wynosił około 24 osoby. Wielkość ta jest istotna statystycznie a wartość współczynnika determinacji wynosi zaledwie 21%.
+
+Dodajmy zmienną `covid`:
+
+
+```{r}
+t2 <- lm(zgony ~ t + covid, data=z3m)
+summary(t2)
+```
+
+Po uwzględnieniu efektu COVID, liczba zgonów w okresie 2000--2024 
+rosła średnio o ok. 15 osób miesięcznie.
+W latach 2020–2022 liczba zgonów była przeciętnie wyższa o ok. 6,5 tys. miesięcznie w porównaniu do poziomu wynikającego z trendu.
+
+Efekt sezonowości może zostać dodany do równania
+w postaci $k-1$ zmiennych sztucznych $M_i$, z których każda
+przyjmuje wartość 1 jeżeli obserwacja pochodzi z $i$-tego
+miesiąca, a zero w pozostałych miesiącach. W ten sposób 
+model oszacuje wpływ danego miesiąca na wielkość zmiennej $y$.
+
+```{r}
+## 0/1 dla miesięcy
+t3 <- lm(zgony ~ t + covid + factor(month), data = z3m)
+summary(t3)
+```
+
+```{r}
+z3m |> group_by(month) |>
+  summarise(m = mean(zgony))
+```
+
+Te sztuczne zmienne na wydruku noszą cokolwiek barokowe nazwy
+`factor(month)M02`--`factor(month)M012`. Zmiennych jest 11 ($k-1)
+a nie 12 i nie jest to błąd. Brakująca zmienna jest bazą porównań,
+np. w lutym umierało przeciętnie około 3836 mniej 
+niż w **styczniu**. Podobnie interpretuje się inne wspóczynniki.
+
+Można też interpretować współczynniki względem średniego
+poziomu zmiennej $y$ w roku. Wymaga to obliczenia
+wartości średniej wskaźników:
+
+$$\bar M = M_2 + \cdots + M_{12}$$
+
+teraz dla każdego wskaźnika $M_1, \ldots, M_{12}$ należy
+wykonać $S_i=M_i - \bar M$ (przypominamy, że $M_1 = 0$).
+
+## Koniec
 

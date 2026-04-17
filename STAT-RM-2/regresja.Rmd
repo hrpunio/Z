@@ -236,6 +236,16 @@ bo zakładamy, że $E(\epsilon) = 0$. Średnie wartości $y$ są równe kombinac
 albo $X$ objaśnia zmienność  $y$ (w sensie statystycznym), czyli: znając 
 $X$, możemy przewidywać  $y$.
 
+Oceny parametrów 
+$β$ uzyskuje się za pomocą **metody najmniejszych kwadratów** (MNK), w której minimalizuje się sumę kwadratów różnic między wartościami obserwowanymi 
+$y$ a wartościami teoretycznymi $\hat y$, przy czym 
+$\hat y =Xβ$ oznacza wartość zmiennej 
+$y$ wyznaczoną na podstawie modelu (teoretyczną).
+W przypadku kiedy $X$ oznacza jedną zmienną można to przedstawić
+na rysunku.
+
+![](./kmnk_roznice.png)
+
 **Typowa analiza**: 
 Opisanie zależności między **zmienną zależną** (objaśnianą) $y$ a jedną
 lub wieloma **zmiennymi niezależnymi**
