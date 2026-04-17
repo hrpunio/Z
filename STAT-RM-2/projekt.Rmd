@@ -1,0 +1,56 @@
+---
+title: "Przykład projektu"
+author:
+  name: Tomasz Przechlewski
+  email: "t.plata-przechlewski@psw.kwidzyn.edu.pl"
+  affiliation: Powiślańska Szkoła Wyższa (Kwidzyn/Poland)
+date: "21/2/2026"
+output:
+  html_document:
+    css: custom.css
+  pdf_document:
+    keep_tex: true
+    latex_engine: lualatex
+description: "(c) Tomasz Przechlewski / CC-BY license"
+header-includes: \usepackage{custom}
+---
+
+## Oczekiwany zakres analizy:-)
+
+Praca ma zawierać następujące elementy:
+
+* Określenie co jest analizowane + podanie źródła skąd dane zostały
+  pobrane
+
+* Analiza jednej zmiennej np. częstość występowania otyłości w Europie
+  
+  -- histogram i/lub wykres pudełkowy lub jakiś inny, 
+  
+  -- średnia, mediana, kwartyle,
+  
+  -- wariancja, odchylenie standardowe, odchyleni ćwiartkowe
+  
+  -- współczynnik skośności
+
+* Analiza dwu zmiennych, np. częstość występowania cukrzycy
+  a występowanie otyłości w Europie albo `number of neonatal deaths` vs
+  `number of medical doctors`. 
+
+  -- wykres (korelogram)
+  
+  -- model regresji liniowej, interpretacja parametrów(u) modelu
+  
+  -- współczynnik determinacji $R^2$, ocena istotności parametrów
+
+* Analiza szeregu czasowego, np liczby zgonów 
+  na szpiczaka plazocytowego  w Polsce
+
+   -- wykres
+   
+   -- model trendu liniowego
+   
+   -- współczynnik determinacji $R^2$, ocena istotności parametrów
+   
+   -- obliczyć średnie tempo zmian
+
+## Przykład
