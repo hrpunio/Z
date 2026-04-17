@@ -38,14 +38,39 @@ mnie oraz przez prowadzącego ćwiczenia.
 (czyli przed następną sesją wykładów). 
 Praca ma zawierać następujące elementy**:
 
+* Określenie co jest analizowane + podanie źródła skąd dane zostały
+  pobrane
+
 * Analiza jednej zmiennej np. częstość występowania otyłości w Europie
+  
+  -- histogram i/lub wykres pudełkowy lub jakiś inny, 
+  
+  -- średnia, mediana, kwartyle,
+  
+  -- wariancja, odchylenie standardowe, odchyleni ćwiartkowe
+  
+  -- współczynnik skośności
 
 * Analiza dwu zmiennych, np. częstość występowania cukrzycy
   a występowanie otyłości w Europie albo `number of neonatal deaths` vs
   `number of medical doctors`. 
+
+  -- wykres (korelogram)
   
-* Analiza szeregu czasowego, np liczby zgonów na szpiczaka plazocytowego 
-  w Polsce
+  -- model regresji liniowej, interpretacja parametrów(u) modelu
+  
+  -- współczynnik determinacji $R^2$, ocena istotności parametrów
+
+* Analiza szeregu czasowego, np liczby zgonów 
+  na szpiczaka plazocytowego  w Polsce
+
+   -- wykres
+   
+   -- model trendu liniowego
+   
+   -- współczynnik determinacji $R^2$, ocena istotności parametrów
+   
+   -- obliczyć średnie tempo zmian
 
 Projekt ma się wzorować na analizie przedstawionej
 na wykładzie i ćwiczeniach. Nie zaleca się wykorzystania innych metod niż
