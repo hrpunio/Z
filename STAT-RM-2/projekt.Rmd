@@ -15,6 +15,18 @@ description: "(c) Tomasz Przechlewski / CC-BY license"
 header-includes: \usepackage{custom}
 ---
 
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+
+library('tidyverse')
+library('knitr')
+library("moments")
+
+every_nth = function(n) {
+  return(function(x) {x[c(TRUE, rep(FALSE, n - 1))]})}
+
+```
+
 ## Oczekiwany zakres analizy:-)
 
 Praca ma zawierać następujące elementy:
@@ -28,7 +40,7 @@ Praca ma zawierać następujące elementy:
   
   -- średnia, mediana, kwartyle,
   
-  -- wariancja, odchylenie standardowe, odchyleni ćwiartkowe
+  -- wariancja, odchylenie standardowe, odchylenie ćwiartkowe
   
   -- współczynnik skośności
 
@@ -54,3 +66,188 @@ Praca ma zawierać następujące elementy:
    -- obliczyć średnie tempo zmian
 
 ## Przykład
+
+Proszę nie kopiować literalnie, poniższe ma stanowić inspirację :-)
+
+### Dane
+
+Wykorzystano następujące zbiory danych
+
+* Otyłość wśród dorosłych, BMI ≥ 30, częstość występowania (surowe oszacowanie) (%)
+(*Obesity among adults, BMI >= 30, prevalence (crude estimate) (%)*)
+https://www.who.int/data/gho/data/indicators/indicator-details/GHO/prevalence-of-obesity-among-adults-bmi-=-30-(crude-estimate)-(-)
+
+* Standaryzowana względem wieku częstość występowania cukrzycy (%)
+(*Age standardized  prevalenc of diabets (%)*)
+https://www.who.int/data/gho/data/indicators/indicator-details/GHO/prevalence-of-diabetes-age-standardized
+
+* Liczba zmarłych z powodu chłoniaków oraz szpiczka mnogiego w Polsce w latach 1959--2022
+https://platform.who.int/mortality/themes/theme-details/topics/indicator-groups/indicator-group-details/MDB/lymphomas-multiple-myeloma
+
+### Otyłość wśród dorosłych w Europie w latach 2000 oraz 2022
+
+W tabeli zestawiono, 
+a na wykresie przedstawiono przeciętny poziom zjawiska, jego rozproszenie oraz skośność w latach 2000 i 2022.
+
+```{r}
+c0 <- read.csv("./cukrzycy_who.csv", dec = ".", sep = ";", header=T, na.strings ="NA")
+o0 <- read.csv("./otyli_who.csv",
+              dec = ".", sep = ";", header=T, na.strings ="NA")
+o.eur <- o0 |>
+  filter (ParentLocationCode == 'EUR') |> ## Europa
+  filter (year == 2000 | year == 2022) |> ## rok
+  filter (sex == 'BTSX') |> ## płeć
+  filter (AGEGROUP == 'YEARS18-PLUS') ## grupa wiekowa
+
+o.eur.agg <- o.eur |>
+  group_by(year) |>
+  summarise(mean = mean(p),
+            median = median(p),
+            q1 = quantile(p, 0.25),
+            q3 = quantile(p, 0.75),
+            variance = var(p),
+            sd = sd(p),
+            iqr = IQR(p),
+            ##iqr2 = q3 - q1,
+            skweness = moments::skewness(p)
+            )
+
+knitr::kable(o.eur.agg)
+```
+
+
+
+```{r}
+p1 <- ggplot(o.eur, aes(x = factor(year), y = p)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Otyłość w Europie w latach 2000 oraz 2022",
+       caption = "Źródło: gho tabela Obesity among adults, BMI >= 30, prevalence (crude estimate) (%)",
+       x = "Rok",
+       y = "p")
+p1
+```
+
+W porównaniu do pierwszego okresu, w drugim okresie obserwuje się wyraźny wzrost poziomu otyłości, co widoczne jest w wyższej medianie i średniej. 
+Jednocześnie zwiększone rozproszenie wskazuje, że populacja stała się bardziej niejednorodna — różnice między krajami o najniższych i najwyższych wartościach otyłości uległy pogłębieniu.
+
+## Wpływ otyłości na występowanie cukrzycy w modelu regresji liniowej
+
+Zależność pomiędzy otyłością na występowanie cukrzycy przedstawiono na rysunku
+
+```{r}
+
+## Przykład korelacja & regresja
+## Obesity vs Diabets
+## https://www.who.int/data/gho/data/indicators/indicator-details/GHO/prevalence-of-diabetes-age-standardized
+## Age standardized  prevalenc of diabets
+## standaryzowana względem wieku częstość występowania cukrzycy (%)
+c0 <- read.csv("./cukrzycy_who.csv",
+              dec = ".", sep = ";", header=T, na.strings ="NA")
+
+c.eur <- c0 |>
+  filter (ParentLocationCode == 'EUR') |> ## Europa
+  filter (year == 2000 | year == 2010 | year == 2022) |> ## rok
+  filter (sex == 'BTSX') |> ## płeć
+  filter (AGEGROUP == 'YEARS18-PLUS') ## grupa wiekowa
+
+oc.eur <- left_join(o.eur, c.eur, by=c('year', 'COUNTRY')) |>
+  filter (year == 2022) |>
+  select (o=p.x, d=p.y)
+
+## Odsetek osób z otyłością a odsetek osób z cukrzyć w Europie
+## w roku 2022
+
+p1 <- ggplot(oc.eur, aes(x = o, y = d)) +
+  geom_point(color = "blue") +
+  labs(title = "Odsetek osób z otyłością a odsetek osób z cukrzycą w Europie (2022)",
+       caption = 'https://www.who.int/data/gho/data/indicators/indicator-details/GHO/',
+       x = "Otyłość (%)",
+       y = "Cukrzyca (%)")
+p1
+```
+
+Hipoteza badawcza: istnieje zależność między otyłością a częstością występowania cukrzycy
+
+Do weryfikacji hipotezy wykorzystujemy dane nt. otyłości oraz cukrzycy
+w Europie w 2022 roku 
+
+```{r}
+m1 <- lm (d ~ o, data=oc.eur)
+
+summary(m1)
+```
+
+Hipoteza badawcza została potwierdzona: jeżeli odsetek osób z otyłością
+wzrośnie o 1% to odsetek osób z cukrzycą przeciętnie wzrośnie o 0,26%;
+wartość ta jest istotna statystycznie ($p=0.0002$). 
+Wielkość współczynnika determinacji $R^2 = 24$% oznacza, że 24%
+zmienności odsetka osób 
+z cukrzycą jest wyjaśniane przez model (czyli nie za dużo).
+
+## Analiza trendu liniowego liczby zgonów z powodu chłoniaka oraz szpiczaka mnogiego w Polsce
+
+Liczbę zgonów z powodu chłoniaka oraz szpiczaka mnogiego w Polsce w latach
+1959--2022 według płci zmarłego przedstawiono na wykresie.
+
+
+```{r}
+m <- read.csv("WHOMortalityDatabase_Deaths_sex_age_a_country_area_year-Lymphomas.csv",
+              ##row.names = NULL,
+              dec = ".", sep = ",", header=T, na.strings ="NA")
+
+m.pl <- m |>
+  filter (Country.Code == 'POL') |>
+  filter (Age.group.code == 'Age_all') |>
+  select (Year, Sex,
+          zgony=Number,
+          p=Percentage.of.cause.specific.deaths.out.of.total.deaths,
+          dr=Death.rate.per.100.000.population) |>
+  mutate (trend = row_number())
+
+m.pl.mk <- m.pl |> filter (Sex != 'All') 
+m.pl.bothsexes <- m.pl |> filter (Sex == 'All')
+
+## liczba zgonów
+p1 <- m.pl.mk |> ggplot(aes(x=Year, y=zgony, color=Sex)) +
+  geom_line() +
+  geom_point()
+p1
+
+## wskaźnik / 100 tys
+p2 <- m.pl.mk |> ggplot(aes(x=Year, y=dr, color=Sex)) +
+  geom_line()
+##p2
+```
+
+Moża zaobserwować wyrażny trend liniowy do okołu roku 2018, w którym to roku
+nastąpiła wyraźne odwrócenie tendencji i spadek. Z powodu obu chorób
+umierało więcej mężczyzn niż kobiet.
+
+Oszacowano także model trendu liniowego liczby zgonów łącznie (kobiety + mężczyźni)
+z powodu chłoniaka oraz szpiczaka mnogiego w Polsce w latach
+1959--2022 
+
+```{r}
+## trend liniowy
+m1 <- lm(zgony ~ trend, data=m.pl.bothsexes)
+summary(m1)
+```
+
+W latach 1959--2022  przeciętny roczny wzrost liczby zgonów wynosił około 17,6 osób;
+wielkość ta jest istotna statystycznie.
+Wartość współczynnika determinacji jest wysoka bo wynosi 97%.
+
+```{r}
+## Średnie tempo zmian
+stw <- m.pl.bothsexes %>%
+  arrange(Year) %>%
+  summarise(
+    cagr = (last(zgony) / first(zgony))^(1/(n() - 1)) - 1
+  ) %>%
+  mutate(cagr = cagr * 100) |>
+  unlist() |> unname ()
+```
+
+Średnie tempo zmian liczby zgonów łącznie w latach 1959-2022 wynosiło `r round(stw,1)`%, 
+tj. przeciętnie w tym okresie liczba 
+zgonów ogółem rośnie o `r round(stw,1)`%. 
